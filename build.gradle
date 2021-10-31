@@ -1,0 +1,71 @@
+group 'io.github.klimenko'
+version '1.4.6'
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ["src/main/java", "src/main/resources"]
+            includes = ["**/*.fxml",
+                        "**/*.png",
+                        "**/*.json",
+                        "**/*.properties",
+                        "**/*.css",
+                        "**/*.pub",
+                        "**/META-INF/**"
+            ]
+        }
+    }
+}
+
+task generateVersionNumberFile(dependsOn: compileJava) {
+    inputs.property "version", project.version
+    outputs.dir "$buildDir/resources/main/generated"
+    doFirst {
+        def versionFile = file("$buildDir/resources/main/generated/CurrentVersion.properties")
+        versionFile.parentFile.mkdirs()
+        versionFile.text = "$project.version"
+    }
+}
+
+// Outputs to: build/libs/[baseName]-[version].jar
+task makeMyJar(type: Jar, dependsOn: generateVersionNumberFile){
+    baseName = 'Klimenko_Video_Uploader'
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    manifest {
+        attributes 'Main-Class': 'io.github.klimenko.videouploader.main.Main'
+    }
+    with jar
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // The YouTube API and its requirements
+    compile 'com.google.api-client:google-api-client:1.32.1'
+    compile 'com.google.oauth-client:google-oauth-client-jetty:1.31.5'
+    compile 'com.google.apis:google-api-services-youtube:v3-rev20210811-1.32.1'
+    // For the metadata-related features
+    compile 'org.jcodec:jcodec:0.2.5'
+    // Verifying downloaded updates are real and not from someone else
+    compile 'com.google.crypto.tink:tink:1.5.0'
+    // A better HTTP-client than the one built into Java
+    compile 'com.squareup.okhttp3:okhttp:4.9.1'
+}
+
+// https://developers.google.com/api-client-library/java/apis/youtube/v3
+// https://search.maven.org/#search%7Cgav%7C1%7Cg%3A"com.google.apis"%20AND%20a%3A"google-api-services-youtube"
+//
